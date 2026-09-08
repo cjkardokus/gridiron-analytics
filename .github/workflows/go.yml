@@ -1,0 +1,42 @@
+name: go
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - '.github/workflows/go.yml'
+  pull_request:
+    paths:
+      - 'api/**'
+      - '.github/workflows/go.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          # No go.sum yet (no external dependencies) - nothing to key a
+          # module cache on.
+          cache: false
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go build
+        run: go build ./...
+
+      - name: go test
+        run: go test ./...
+
+      # golangci-lint is a near-term follow-up: the module is a one-file
+      # stub right now, so a lint config isn't worth setting up until
+      # there's real code to lint.

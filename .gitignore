@@ -1,0 +1,35 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# --- Go ---
+/api/api
+/api/*.exe
+
+# --- Terraform ---
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.tfstate.lock.info
+# .terraform.lock.hcl is intentionally NOT ignored - it's committed.
+
+# --- Docker ---
+docker/**/data/
+*.volumes/
+
+# --- Env / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Editor / OS ---
+.DS_Store
+.idea/
+.vscode/
