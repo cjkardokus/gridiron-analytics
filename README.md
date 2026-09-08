@@ -34,10 +34,15 @@ docker compose up --build
 ```
 
 This starts:
-- `postgres` — one Postgres instance: the `airflow` database is Airflow's
-  metadata DB, and a second `gridiron` database (created by
-  `docker/postgres/init-gridiron-db.sql`) is a local stand-in for what
-  will eventually be Aurora.
+- `postgres` — one Postgres instance holding **two separate databases**:
+  - `airflow` — Airflow's own metadata (DAG runs, task state, connections,
+    etc.). Nothing outside Airflow itself should read or write here.
+  - `gridiron` — the application database (created by
+    `docker/postgres/init-gridiron-db.sql`, owned by its own `gridiron`
+    role). This is a local stand-in for what will eventually be Aurora
+    PostgreSQL, and is where ingestion code and the Go API read and write
+    — see **Application database** below. No schema exists yet; that
+    lands in `feat/aurora-schema`.
 - `airflow-init` — runs `airflow db migrate` and creates an `admin`/`admin`
   user, then exits.
 - `airflow-webserver` — Airflow UI at http://localhost:8080 (log in with
@@ -45,11 +50,33 @@ This starts:
   with an empty DAGs list.
 - `airflow-scheduler` — LocalExecutor scheduler.
 
+Postgres is also published on `localhost:5432` for connecting with `psql`
+or a GUI client directly from the host.
+
 Tear down with:
 
 ```bash
 docker compose down -v
 ```
+
+### Application database
+
+Ingestion code and the Go API are meant to connect to the application
+database (`gridiron` locally, Aurora in production) through a single
+environment variable, `GRIDIRON_DATABASE_URL`, defined in
+`docker-compose.yml` and passed to the Airflow containers (ingestion runs
+as Airflow tasks). Locally it's:
+
+```
+postgresql://gridiron:gridiron@postgres:5432/gridiron
+```
+
+This is deliberately the *only* thing that has to change to move from
+local dev to production: swap this one variable to point at Aurora's
+endpoint instead of the local Postgres container, and no application code
+changes. That's also why it's a separate database and role from
+`airflow` — Airflow's metadata DB has no production equivalent and should
+never be conflated with the application's own data.
 
 ## Python package (`ingestion/`)
 

@@ -4,11 +4,20 @@
 # (no Celery, Redis, worker, triggerer, or flower) - solo local dev only
 # needs the scheduler and webserver talking to one Postgres instance.
 
+# GRIDIRON_DATABASE_URL is the one connection string ingestion code and
+# the Go API use to reach the application database - entirely separate
+# from Airflow's own AIRFLOW__DATABASE__SQL_ALCHEMY_CONN above/below.
+# Locally it points at the `gridiron` database in this same Postgres
+# instance; in production it points at Aurora instead. See the README.
+x-gridiron-db-env: &gridiron-db-env
+  GRIDIRON_DATABASE_URL: postgresql://gridiron:gridiron@postgres:5432/gridiron
+
 x-airflow-common: &airflow-common
   build:
     context: .
     dockerfile: docker/airflow/Dockerfile
-  environment: &airflow-common-env
+  environment:
+    <<: *gridiron-db-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
@@ -26,6 +35,8 @@ services:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
+    ports:
+      - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init-gridiron-db.sql:/docker-entrypoint-initdb.d/init-gridiron-db.sql:ro
